@@ -49,19 +49,27 @@ public class VectorStreamS {
             threads[i].start();
         }
 
+        busy.release(VECTOR_LENGTH);
+
         try {
             for (int i = 0; i < STREAM_LENGTH; i++) {
                 // Wait for threads to finish
+
                 done.acquire(VECTOR_LENGTH);
 
                 sum = 0;
-
                 for (int x : vector) sum += x;
 
                 System.out.println(counter + " -> " + sum);
-
                 counter++;
+
+                busy.release(VECTOR_LENGTH);
             }
+
+            for (int i = 0; i < VECTOR_LENGTH; i++) {
+                threads[i].join();
+            }
+
         } catch (InterruptedException e) {
             for (Thread t : threads) t.interrupt();
 
@@ -94,13 +102,11 @@ public class VectorStreamS {
 
             for (int i = 0; i < STREAM_LENGTH; i++) {
                 if (Thread.currentThread().isInterrupted()) return;
-
-                vector[idx] = vectorDefinition.applyAsInt(sum, idx);
-
-                done.release();
-
                 try {
                     busy.acquire();
+                    vector[idx] = vectorDefinition.applyAsInt(sum, idx);
+                    done.release();
+
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.out.println("Run method problem");
@@ -108,18 +114,18 @@ public class VectorStreamS {
                 }
             }
         }
+    }
 
-        //---------------------------------------------------//
-        public static void main(String[] args) {
-            try {
-                System.out.println("-- Sequentially --");
-                computeVectorStreamSequentially();
-                System.out.println("-- Parallel --");
-                computeVectorStreamInParallel();
-                System.out.println("-- End --");
-            } catch (InterruptedException e) {
-                System.err.println("Main interrupted.");
-            }
+    //---------------------------------------------------//
+    public static void main(String[] args) {
+        try {
+            System.out.println("-- Sequentially --");
+            computeVectorStreamSequentially();
+            System.out.println("-- Parallel --");
+            computeVectorStreamInParallel();
+            System.out.println("-- End --");
+        } catch (InterruptedException e) {
+            System.err.println("Main interrupted.");
         }
     }
 }
