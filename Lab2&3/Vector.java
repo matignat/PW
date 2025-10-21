@@ -3,7 +3,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 @SuppressWarnings("unused")
-public class Vector {
+public class  Vector {
     private static final int SUM_CHUNK_LENGTH = 5;
     private static final int DOT_CHUNK_LENGTH = 5;
 
@@ -174,7 +174,7 @@ public class Vector {
         while (t.isAlive()) {
             try {
                 t.join();
-            } catch (InterruptedException c1) {
+            } catch (InterruptedException e) {
                 Thread.interrupted();
             }
         }
