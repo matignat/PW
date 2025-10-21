@@ -56,7 +56,7 @@ public class Vector {
 
         @Override
         public void run() {
-            for(int i = begin; i < end; i++) {
+            for (int i = begin; i < end; i++) {
                 if (Thread.currentThread().isInterrupted()) return;
                 result.elements[i] = left.elements[i] + right.elements[i];
             }
@@ -87,12 +87,16 @@ public class Vector {
 
         try {
             for (Thread t : threads) t.join();
+            return result;
+
         } catch (InterruptedException e) {
+
             for (Thread t : threads) t.interrupt();
+
+            for (Thread t : threads) wait_for_end(t);
+
             throw e;
         }
-
-        return result;
     }
 
     private static class DotHelper implements Runnable {
@@ -115,7 +119,7 @@ public class Vector {
         @Override
         public void run() {
             int sum = 0;
-            for(int i = begin; i < end; i++) {
+            for (int i = begin; i < end; i++) {
                 if (Thread.currentThread().isInterrupted()) return;
                 sum += left.elements[i] * right.elements[i];
             }
@@ -149,16 +153,31 @@ public class Vector {
 
         try {
             for (Thread t : threads) t.join();
+
+            for (int i : partialResults) {
+                total += i;
+            }
+
+            return total;
+
         } catch (InterruptedException e) {
+
             for (Thread t : threads) t.interrupt();
+
+            for (Thread t : threads) wait_for_end(t);
+
             throw e;
         }
+    }
 
-        for (int i : partialResults) {
-            total += i;
+    public void wait_for_end(Thread t) {
+        while (t.isAlive()) {
+            try {
+                t.join();
+            } catch (InterruptedException c1) {
+                Thread.interrupted();
+            }
         }
-
-        return total;
     }
 
     // ----------------------- TESTS -----------------------
@@ -194,7 +213,7 @@ public class Vector {
 
     public static void main(String[] args) {
         try {
-            for (int length : new int[] { 23, 20 }) {
+            for (int length : new int[]{23, 20}) {
                 Vector a = generateRandomVector(length);
                 System.out.println("A:        " + a);
                 Vector b = generateRandomVector(length);
