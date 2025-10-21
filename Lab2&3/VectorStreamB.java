@@ -1,9 +1,8 @@
-import java.util.Arrays;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.function.IntBinaryOperator;
 
-public class VectorStream {
+public class VectorStreamB {
     private static final int STREAM_LENGTH = 10;
     private static final int VECTOR_LENGTH = 100;
 
@@ -33,7 +32,7 @@ public class VectorStream {
     }
 
     //--------------------BARRIER--------------------//
-    private static final CyclicBarrier barrier = new CyclicBarrier(VECTOR_LENGTH, VectorStream::barrier_action);
+    private static final CyclicBarrier barrier = new CyclicBarrier(VECTOR_LENGTH, VectorStreamB::barrier_action);
     private static int sum = 0;
     private static int counter = 0;
     private static int[] vector = new int[VECTOR_LENGTH];
