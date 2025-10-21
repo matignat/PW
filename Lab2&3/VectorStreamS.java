@@ -1,8 +1,8 @@
 import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Semaphore;
 import java.util.function.IntBinaryOperator;
 
-public class VectorStreamB {
+public class VectorStreamS {
     private static final int STREAM_LENGTH = 10;
     private static final int VECTOR_LENGTH = 100;
 
@@ -31,8 +31,9 @@ public class VectorStreamB {
         }
     }
 
-    //--------------------BARRIER--------------------//
-    private static final CyclicBarrier barrier = new CyclicBarrier(VECTOR_LENGTH, VectorStreamB::barrier_action);
+    //--------------------SEMAPHORE--------------------//
+    static Semaphore done = new Semaphore(0);
+    static Semaphore busy = new Semaphore(0);
     private static int sum = 0;
     private static int counter = 0;
     private static int[] vector = new int[VECTOR_LENGTH];
@@ -41,21 +42,27 @@ public class VectorStreamB {
         Thread[] threads = new Thread[VECTOR_LENGTH];
 
         for (int i = 0; i < VECTOR_LENGTH; i++) {
-            threads[i] = new Thread(new Helper(i));
+            threads[i] = new Thread(new VectorStreamS.Helper(i));
         }
 
         for (int i = 0; i < VECTOR_LENGTH; i++) {
             threads[i].start();
         }
 
-
         try {
-            for (int i = 0; i < VECTOR_LENGTH; i++) {
-                threads[i].join();
+            for (int i = 0; i < STREAM_LENGTH; i++) {
+                // Wait for threads to finish
+                done.acquire(VECTOR_LENGTH);
+
+                sum = 0;
+
+                for (int x : vector) sum += x;
+
+                System.out.println(counter + " -> " + sum);
+
+                counter++;
             }
         } catch (InterruptedException e) {
-            barrier.reset();
-
             for (Thread t : threads) t.interrupt();
 
             for (Thread t : threads) {
@@ -67,7 +74,9 @@ public class VectorStreamB {
                     }
                 }
             }
+
             System.out.println("Main method problem");
+
             throw e;
         }
     }
@@ -88,40 +97,29 @@ public class VectorStreamB {
 
                 vector[idx] = vectorDefinition.applyAsInt(sum, idx);
 
+                done.release();
+
                 try {
-                    barrier.await();
-                } catch (InterruptedException | BrokenBarrierException e) {
-                    // Set the flag and end the task
+                    busy.acquire();
+                } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.out.println("Run method problem");
                     return;
                 }
             }
         }
-    }
 
-    private static void barrier_action() {
-        sum = 0;
-        //Update sum and print
-        for (int i : vector) sum += i;
-
-        System.out.println(counter + " -> " + sum);
-
-        // Update vector number
-        counter++;
-    }
-
-
-    //---------------------------------------------------//
-    public static void main(String[] args) {
-        try {
-            System.out.println("-- Sequentially --");
-            computeVectorStreamSequentially();
-            System.out.println("-- Parallel --");
-            computeVectorStreamInParallel();
-            System.out.println("-- End --");
-        } catch (InterruptedException e) {
-            System.err.println("Main interrupted.");
+        //---------------------------------------------------//
+        public static void main(String[] args) {
+            try {
+                System.out.println("-- Sequentially --");
+                computeVectorStreamSequentially();
+                System.out.println("-- Parallel --");
+                computeVectorStreamInParallel();
+                System.out.println("-- End --");
+            } catch (InterruptedException e) {
+                System.err.println("Main interrupted.");
+            }
         }
     }
 }
