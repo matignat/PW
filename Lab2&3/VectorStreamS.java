@@ -1,4 +1,3 @@
-import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Semaphore;
 import java.util.function.IntBinaryOperator;
 
@@ -32,8 +31,8 @@ public class VectorStreamS {
     }
 
     //--------------------SEMAPHORE--------------------//
-    static Semaphore done = new Semaphore(0);
-    static Semaphore busy = new Semaphore(0);
+    static Semaphore waiting = new Semaphore(0, true);
+    static Semaphore working = new Semaphore(0, true);
     private static int sum = 0;
     private static int counter = 0;
     private static int[] vector = new int[VECTOR_LENGTH];
@@ -49,27 +48,25 @@ public class VectorStreamS {
             threads[i].start();
         }
 
-        busy.release(VECTOR_LENGTH);
-
         try {
             for (int i = 0; i < STREAM_LENGTH; i++) {
-                // Wait for threads to finish
+                // Let threads run
+                working.release(VECTOR_LENGTH);
 
-                done.acquire(VECTOR_LENGTH);
+                // Wait for all to finish
+                waiting.acquire(VECTOR_LENGTH);
 
+                // Update sum
                 sum = 0;
                 for (int x : vector) sum += x;
 
                 System.out.println(counter + " -> " + sum);
                 counter++;
-
-                busy.release(VECTOR_LENGTH);
             }
 
             for (int i = 0; i < VECTOR_LENGTH; i++) {
                 threads[i].join();
             }
-
         } catch (InterruptedException e) {
             for (Thread t : threads) t.interrupt();
 
@@ -102,10 +99,14 @@ public class VectorStreamS {
 
             for (int i = 0; i < STREAM_LENGTH; i++) {
                 if (Thread.currentThread().isInterrupted()) return;
+
                 try {
-                    busy.acquire();
+                    // Wait for start approval
+                    working.acquire();
+                    // Operations
                     vector[idx] = vectorDefinition.applyAsInt(sum, idx);
-                    done.release();
+                    // Let main thread know you are ready
+                    waiting.release();
 
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

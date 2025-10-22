@@ -41,7 +41,7 @@ public class VectorStreamB {
         Thread[] threads = new Thread[VECTOR_LENGTH];
 
         for (int i = 0; i < VECTOR_LENGTH; i++) {
-            threads[i] = new Thread(new Helper(i));
+            threads[i] = new Thread(new VectorStreamB.Helper(i));
         }
 
         for (int i = 0; i < VECTOR_LENGTH; i++) {
